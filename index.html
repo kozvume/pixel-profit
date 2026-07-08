@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelProfit - Higher or Lower</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #121212;
+        }
+
+        .score {
+            position: absolute;
+            top: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            font-size: 1.4rem;
+            color: #fff;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 12px 28px;
+            border-radius: 50px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            letter-spacing: 1px;
+        }
+
+        .score span {
+            color: #ffeb3b;
+            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
+        }
+
+        #game-area {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        .game-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            padding: 40px;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background 0.8s ease-in-out;
+        }
+
+        .game-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1;
+        }
+
+        #box-left { background-color: #430440; }
+        #box-right { background-color: #1c0213; }
+
+        .box-content {
+            z-index: 2;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+            opacity: 1;
+            transform: translateY(0);
+            width: 100%;
+        }
+
+        .box-content.fade-out {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        .game-box h2 {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            font-weight: 800;
+            text-shadow: 2px 4px 15px rgba(0,0,0,0.9);
+        }
+
+        .game-box p {
+            font-size: 1.6rem;
+            font-weight: 300;
+            text-shadow: 1px 2px 8px rgba(0,0,0,0.8);
+            margin-bottom: 25px;
+        }
+
+        .game-box strong {
+            font-size: 3.5rem;
+            color: #ffeb3b;
+            display: block;
+            margin-top: 10px;
+            font-weight: 800;
+        }
+
+        .vs {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            font-weight: 800;
+            color: white;
+            background: linear-gradient(135deg, #ff007f, #7928ca);
+            font-size: 1.8rem;
+            width: 75px;
+            height: 75px;
+            line-height: 75px;
+            border-radius: 50%;
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.6);
+            border: 3px solid white;
+        }
+
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 280px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 6px 20px rgba(56, 239, 125, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            outline: none;
+        }
+
+        button.lower {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b);
+            box-shadow: 0 6px 20px rgba(255, 75, 43, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4), 0 0 15px rgba(255,255,255,0.2);
+        }
+
+        button:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+        
+        /* GAME OVER SCREEN - UPDATE FÜR FULLSCREEN GIF */
+        .game-over-box { 
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #121212; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            overflow: hidden;
+        }
+
+        /* Das GIF streckt sich jetzt über den ganzen Bildschirm */
+        .game-over-gif {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+        }
+
+        /* Dunkler Overlay-Schleier über dem GIF für bessere Lesbarkeit */
+        .game-over-box::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.65); 
+            z-index: 2;
+        }
+
+        /* Schiebt den Text und Button nach vorne über das GIF */
+        .game-over-box h2, 
+        .game-over-box p, 
+        .game-over-box button {
+            position: relative;
+            z-index: 3;
+            text-shadow: 2px 4px 15px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .game-over-box h2 { font-size: 5rem; color: #ff416c; margin-bottom: 5px; font-weight: 800; }
+        .game-over-box p { font-size: 1.8rem; margin-bottom: 30px; max-width: 800px; font-weight: 300; padding: 0 20px; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="score">POINTS: <span id="score-val">0</span> | HIGHSCORE: <span id="highscore-val">0</span></div>
+    
+    <div id="game-area">
+        <div class="game-box" id="box-left">
+            <div class="box-content" id="content-left">
+                <h2 id="game1-title">Game 1</h2>
+                <p>has <strong id="game1-sales">X</strong> million copies sold</p>
+            </div>
+        </div>
+
+        <div class="vs">VS</div>
+
+        <div class="game-box" id="box-right">
+            <div class="box-content" id="content-right">
+                <h2 id="game2-title">Game 2</h2>
+                <p>compared to that has...</p>
+                <div class="buttons">
+                    <button onclick="guess('higher')">🔺 Sold More</button>
+                    <button class="lower" onclick="guess('lower')">🔻 Sold Less</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="game-over-area" class="hidden game-over-box">
+        <img id="game-over-gif" class="game-over-gif" src="" alt="Game Over Animation">
+        
+        <h2>WAH WAH!</h2>
+        <p id="game-over-msg"></p>
+        <button onclick="restartGame()" style="background: linear-gradient(135deg, #ff9800, #f44336); box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4); padding: 20px 50px; font-size: 1.4rem; text-transform: uppercase; letter-spacing: 1px; border-radius: 50px; border: none; color: white; font-weight: 700; cursor: pointer;">TRY AGAIN!</button>
+    </div>
+
+    <script>
+        // HIER DEINEN GIPHY KEY EINTRAGEN!
+        const GIPHY_API_KEY = "9aHq4m7sdaTi4vAHsOOujUUq0syZEx9M";
+
+        const games = [
+          { "title": "Minecraft", "sales": 300, "image": "img/minecraft.png" },
+          { "title": "GTA V", "sales": 200, "image": "img/gtav.png" },
+          { "title": "Tetris (EA)", "sales": 100, "image": "" },
+          { "title": "Wii Sports", "sales": 83, "image": "" },
+          { "title": "PUBG", "sales": 75, "image": "" },
+          { "title": "Red Dead Redemption 2", "sales": 64, "image": "" },
+          { "title": "Mario Kart 8 Deluxe", "sales": 62, "image": "" },
+          { "title": "The Witcher 3", "sales": 50, "image": "" },
+          { "title": "Terraria", "sales": 44, "image": "" },
+          { "title": "Animal Crossing: New Horizons", "sales": 44, "image": "" },
+          { "title": "Pac-Man", "sales": 42, "image": "" },
+          { "title": "Cyberpunk 2077", "sales": 25, "image": "" },
+          { "title": "Elden Ring", "sales": 25, "image": "" },
+          { "title": "Hogwarts Legacy", "sales": 24, "image": "" },
+          { "title": "Diablo IV", "sales": 12, "image": "" }
+        ];
+
+        let currentScore = 0;
+        let highscore = 0;
+        let game1, game2;
+
+        function getRandomGame(exclude) {
+            let g;
+            do {
+                g = games[Math.floor(Math.random() * games.length)];
+            } while (exclude && g.title === exclude.title);
+            return g;
+        }
+
+        function initRound() {
+            if (!games || games.length === 0) return;
+            if (!game1) game1 = getRandomGame();
+            game2 = getRandomGame(game1);
+
+            document.getElementById('game1-title').innerText = game1.title;
+            document.getElementById('game1-sales').innerText = game1.sales;
+            document.getElementById('box-left').style.backgroundImage = game1.image ? `url('${game1.image}')` : '';
+
+            document.getElementById('game2-title').innerText = game2.title;
+            document.getElementById('box-right').style.backgroundImage = game2.image ? `url('${game2.image}')` : '';
+            
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('game-over-area').classList.add('hidden');
+        }
+
+        async function fetchRandomLoseGif() {
+            const gifElement = document.getElementById('game-over-gif');
+            
+            // Fallback falls der Key fehlt
+            gifElement.src = "https://i.giphy.com/11Nd2MTE5t6TyM.gif"; 
+
+            if (!GIPHY_API_KEY || GIPHY_API_KEY === "DEIN_GIPHY_API_KEY") {
+                console.warn("Giphy API Key fehlt!");
+                return;
+            }
+
+            try {
+                const tags = ['game over', 'gaming fail', 'wasted gaming'];
+                const randomTag = tags[Math.floor(Math.random() * tags.length)];
+                
+                // Wir holen das originale/große Bild (nicht das kleine fixed_height), da es jetzt Fullscreen ist!
+                const response = await fetch(`https://api.giphy.com/v1/gifs/random?api_key=${GIPHY_API_KEY}&tag=${encodeURIComponent(randomTag)}&rating=pg`);
+                const result = await response.json();
+                
+                if (result.data && result.data.images && result.data.images.original.url) {
+                    gifElement.src = result.data.images.original.url;
+                }
+            } catch (error) {
+                console.error("Fehler beim Abrufen des Giphy-GIFs:", error);
+            }
+        }
+
+        function guess(choice) {
+            const correct = (choice === 'higher' && game2.sales >= game1.sales) || 
+                            (choice === 'lower' && game2.sales <= game1.sales);
+
+            if (correct) {
+                currentScore++;
+                document.getElementById('score-val').innerText = currentScore;
+                
+                if (currentScore > highscore) {
+                    highscore = currentScore;
+                    document.getElementById('highscore-val').innerText = highscore;
+                }
+
+                const leftContent = document.getElementById('content-left');
+                const rightContent = document.getElementById('content-right');
+                
+                leftContent.classList.add('fade-out');
+                rightContent.classList.add('fade-out');
+
+                setTimeout(() => {
+                    game1 = game2; 
+                    initRound();
+                    
+                    leftContent.classList.remove('fade-out');
+                    rightContent.classList.remove('fade-out');
+                }, 400); 
+                
+            } else {
+                fetchRandomLoseGif();
+
+                document.getElementById('game-area').classList.add('hidden');
+                document.getElementById('game-over-area').classList.remove('hidden');
+                document.getElementById('game-over-msg').innerText = 
+                `${game2.title} has ${game2.sales} million sales. But ${game1.title} had ${game1.sales} million!`;
+            }
+        }
+
+        function restartGame() {
+            currentScore = 0;
+            document.getElementById('score-val').innerText = currentScore;
+            game1 = null;
+            initRound();
+        }
+
+        initRound();
+    </script>
+</body>
+</html>
